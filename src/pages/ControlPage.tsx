@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameState } from '../hooks/useGameState';
 import { useSocket } from '../hooks/useSocket';
 import { GridConfigurator } from '../components/control/GridConfigurator';
@@ -16,6 +16,22 @@ export function ControlPage() {
     assignRandomChallenges, shuffleChallenges,
   } = useSocket();
   const [selectedHexId, setSelectedHexId] = useState<string | null>(null);
+
+  // tools.skenmy.com auth pill (signed-in user + role chip in the top-right).
+  // Only mounted on the control surface; the public /display view stays clean for OBS.
+  useEffect(() => {
+    if (document.getElementById('sk-embed-script')) return;
+    const s = document.createElement('script');
+    s.id = 'sk-embed-script';
+    s.src = 'https://tools.skenmy.com/embed.js';
+    s.dataset.app = 'blockbuster';
+    s.dataset.role = 'admin';
+    document.head.appendChild(s);
+    return () => {
+      s.remove();
+      document.querySelector('.sk-auth-pill')?.remove();
+    };
+  }, []);
 
   if (!gameState) {
     return (
