@@ -7,19 +7,21 @@ mirrored into the broadcast as an OBS browser source.
 
 Live at **<https://blockbuster.skenmy.com>** —
 `/display` is the OBS-ready scoreboard, `/control` is the host UI
-(Twitch-gated via [tools.skenmy.com](https://tools.skenmy.com)).
+(auth-gated via the [tools.skenmy.com](https://tools.skenmy.com)
+embed pill).
 
 ## What it is
 
 - **Hex grid.** Configurable rows × cols; teams race to connect their
-  edge to the opposite edge by claiming adjacent hexes.
+  edge to the opposite edge by claiming adjacent hexes. Team 1 runs
+  north-south, team 2 east-west.
 - **Challenges.** Each hex carries a question / dare / speed-challenge
-  pasted from a CSV or text bank. The host flips, the team answers,
-  the host awards the hex to one team (or marks it failed).
-- **Teams.** Up to four colour-coded teams with custom names; the UI
-  tracks current turn and total hex count.
+  pasted into the bulk paster (one per line). The host flips, the team
+  answers, the host awards the hex to one team or resets it.
+- **Teams.** Two teams (`team1` / `team2`) with editable names and
+  colour pickers; the UI tracks current turn and per-team score.
 - **Mini-map.** Tiny live preview of the grid on the control panel so
-  the host can see the public scoreboard without alt-tabbing to OBS.
+  the host can pick a hex without alt-tabbing to OBS.
 - **Real-time.** Every browser on `/display` and `/control` sees state
   changes within a tick — Socket.IO broadcasts every mutation to every
   client; the in-memory `gameState` on the server is authoritative.
@@ -39,20 +41,29 @@ Live at **<https://blockbuster.skenmy.com>** —
 
 ## Socket.IO protocol
 
-The server emits `state:update` after every change with the full
-`gameState`. The client emits these requests:
+Event names are kebab-case. The server emits `state-update` (full
+`gameState`) after every mutation, plus targeted animation hints
+(`hex-flipping`, `hex-awarded`, `game-over`). The full set of typed
+events lives in [`src/types/game.ts`](src/types/game.ts).
 
-| client → server | data |
+Client → server:
+
+| event | data |
 |---|---|
-| `grid:update` | `{ rows, cols, layout }` |
-| `team:update` | `{ id, name?, colour? }` |
-| `challenge:set` | `{ hexId, text }` |
-| `challenge:shuffle` / `challenge:assignRandom` | `{}` |
-| `hex:flip` | `{ hexId }` |
-| `hex:award` | `{ hexId, teamId }` |
-| `hex:reset` | `{ hexId }` |
-| `turn:next` | `{}` |
-| `game:reset` / `game:end` / `game:demoWin` | `{}` |
+| `request-state` | — |
+| `update-grid` | `{ rows, cols }` |
+| `update-team` | `{ teamId, name?, color? }` |
+| `set-challenge` | `{ hexId, challenge }` |
+| `set-all-challenges` | `{ challenges: Record<hexId, string> }` |
+| `assign-random-challenges` | `{ pool: string[] }` |
+| `shuffle-challenges` | — |
+| `flip-hex` | `{ hexId }` |
+| `award-hex` | `{ hexId, teamId }` |
+| `reset-hex` | `{ hexId }` |
+| `next-turn` | — |
+| `reset-game` | — |
+| `end-game` | `{ winner: teamId }` |
+| `demo-win` | `{ teamId }` |
 
 ## Local dev
 
